@@ -95,7 +95,7 @@ class Database:
         return job
 
     @staticmethod
-    def get_jobs(status: JobStatus | None = None, min_score: float = 0) -> list[Job]:
+    def get_jobs(status=None, min_score: float = 0):
         with get_db() as conn:
             if status:
                 rows = conn.execute(
@@ -139,7 +139,7 @@ class Database:
         return app
 
     @staticmethod
-    def get_applications(status: ApplicationStatus | None = None) -> list[Application]:
+    def get_applications(status=None):
         with get_db() as conn:
             if status:
                 rows = conn.execute(

@@ -1,0 +1,11 @@
+[client]
+showErrorDetails = true
+emailerAddress = ""
+
+[logger]
+level = "warning"
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+serverPort = 8501

@@ -25,17 +25,6 @@ def run_full_scrape() -> int:
 
     all_jobs = []
 
-    # JobSpy: LinkedIn + Indeed + Glassdoor
-    if platforms_cfg.get("linkedin", {}).get("enabled"):
-        console.rule("[cyan]JobSpy (LinkedIn + Indeed + Glassdoor)")
-        scraper = JobSpyScraper(platforms=["linkedin", "indeed", "glassdoor"])
-        jobs = scraper.scrape(
-            search_terms=search_terms[:4],  # İlk 4 terim yeterli
-            locations=locations[:3],
-            results_wanted=platforms_cfg["linkedin"].get("results_wanted", 30),
-        )
-        all_jobs.extend(jobs)
-
     # Remote OK
     if platforms_cfg.get("remote_ok", {}).get("enabled"):
         console.rule("[cyan]Remote OK")

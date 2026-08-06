@@ -10,7 +10,7 @@ from .base import BaseScraper
 class JobSpyScraper(BaseScraper):
     name = "jobspy"
 
-    def __init__(self, platforms: list[str] | None = None):
+    def __init__(self, platforms: list[str] = None):
         # linkedin, indeed, glassdoor, zip_recruiter, google
         self.platforms = platforms or ["linkedin", "indeed", "glassdoor"]
 
@@ -70,7 +70,7 @@ class JobSpyScraper(BaseScraper):
         return unique
 
     @staticmethod
-    def _parse_date(val) -> datetime | None:
+    def _parse_date(val) -> datetime:
         if val is None:
             return None
         if isinstance(val, datetime):
