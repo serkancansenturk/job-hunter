@@ -166,12 +166,24 @@ elif page == "🔍 İlanlar":
                 st.write(f"**Platform:** {job.platform} &nbsp;·&nbsp; **Tarih:** {job.scraped_at.strftime('%d.%m.%Y') if job.scraped_at else '—'}")
                 if job.url:
                     st.write(f"🔗 [İlana Git]({job.url})")
+
                 if job.ai_score_reason:
-                    st.info(f"🤖 AI Değerlendirmesi: {job.ai_score_reason}")
+                    # Reason'ı parse et ve güzel göster
+                    parts = job.ai_score_reason.split(" | ")
+                    st.success(parts[0]) if job.ai_score >= 7 else st.info(parts[0])
+
+                    # Ek detayları tabs'de göster
+                    if len(parts) > 1:
+                        col_detail = st.columns(len(parts) - 1)
+                        for idx, detail in enumerate(parts[1:]):
+                            with col_detail[idx]:
+                                st.caption(detail)
+
                 if job.ai_keywords:
-                    st.warning(f"📌 Eklenecek anahtar kelimeler: {', '.join(job.ai_keywords)}")
+                    st.warning(f"📌 ATS için eklenecekler: {', '.join(job.ai_keywords[:4])}")
+
                 if job.description:
-                    with st.popover("İlan Açıklaması"):
+                    with st.popover("📄 İlan Açıklaması"):
                         st.write(job.description[:2000])
 
             with col_b:

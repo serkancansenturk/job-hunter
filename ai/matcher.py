@@ -10,23 +10,36 @@ from models.job import Job
 
 
 SYSTEM_PROMPT = """
-Sen bir kıdemli işe alım uzmanısın. Sana bir aday profili ve iş ilanları verilecek.
-Her ilan için 1-10 arası uygunluk skoru ver.
+Sen kıdemli bir işe alım ve talent danışmanısın. Adayın CV'sini, geçmiş deneyimini, becerilerini,
+başarılarını ve sektör geçmişini derinlemesine analiz ederek iş ilanları için uygunluk puanı veriyorsun.
 
-Skorlama kriterleri:
-- 9-10: Çok güçlü eşleşme, başvurulmalı
-- 7-8: İyi eşleşme, başvurulabilir
-- 5-6: Kısmi eşleşme, revize ile uygun olabilir
-- 1-4: Zayıf eşleşme, atla
+Değerlendirme kriterleri (sadece başlık değil, tam profil analizi):
+- Role/Unvan uygunluğu (başlık benzerliği + seniority seviyesi)
+- Sektör/Endüstri deneyimi (ilgili şirket veya sektörde çalıştı mı?)
+- Teknik/Fonksiyonel beceriler (Salesforce, OKR, CX, Leadership, vb.)
+- Ölçülebilir başarılar (P&L, metrikleri yönetebiliyor mu?)
+- Ekip yönetimi deneyimi
+- Transformasyon/Modernizasyon deneyimi
+- Lokasyon/Remote uygunluğu
 
-JSON formatında yanıt ver:
+Skorlama (1-10):
+- 9-10: Mükemmel eşleşme — aday tam bu rol için yazılmış gibi
+- 7-8: Güçlü eşleşme — geçmiş doğrudan applicable
+- 5-6: Orta eşleşme — geçmiş relevant ama gap'ler var
+- 3-4: Zayıf eşleşme — bazı beceriler uygun ama role uymaz
+- 1-2: Çok zayıf — atlanması öneriliyor
+
+JSON yanıt:
 {
   "evaluations": [
     {
       "job_id": "...",
       "score": 8,
-      "reason": "...",
-      "missing_keywords": ["keyword1", "keyword2"]
+      "reason": "Detaylı, konkret nedenler. Hangi geçmiş rol/beceri uygun, hangi deneyim transfer edilebilir",
+      "matched_skills": ["skill1", "skill2", "skill3"],
+      "relevant_experience": "Hangi geçmiş pozisyon/başarı bu role uygundur",
+      "gaps": ["Gap1", "Gap2 (varsa)"],
+      "keywords_to_add": ["ATS keyword1", "keyword2"]
     }
   ]
 }
@@ -40,25 +53,46 @@ class JobMatcher:
 
     def _build_cv_summary(self) -> str:
         cv = CV_DATA
+
+        # Tüm deneyimi detaylı ekle
         exp_lines = []
-        for e in cv["experience"][:4]:  # Son 4 pozisyon yeterli
-            exp_lines.append(f"- {e['title']} @ {e['company']} ({e['period']})")
+        for e in cv["experience"]:
+            bullets = " | ".join(e["bullets"][:2])  # İlk 2 başarı
+            exp_lines.append(f"• {e['title']} @ {e['company']} ({e['period']}): {bullets}")
+
+        # Tüm beceriler
+        all_skills = []
+        for category, skills in cv["skills"].items():
+            all_skills.extend(skills)
 
         return f"""
-Aday: {cv['personal']['name']}
-Başlık: {cv['personal']['title']}
+─── ADAY PROFİLİ ───
+Ad: {cv['personal']['name']}
+Mevcut Unvan: {cv['personal']['title']}
 
-Deneyim:
+─── ÖZGEÇMIŞ ÖZETI ───
+{cv['summary']}
+
+─── TAM DENEYIM GEÇMİŞİ ───
 {chr(10).join(exp_lines)}
 
-Temel başarılar:
-{chr(10).join('- ' + m for m in cv['key_metrics'][:5])}
+─── ÖLÇÜLEBİLİR BAŞARILAR ───
+{chr(10).join('• ' + m for m in cv['key_metrics'])}
 
-Sertifikalar: {', '.join(cv['certifications'][:5])}
+─── TEKNİK BECERİLER & ARAÇLAR ───
+{', '.join(sorted(set(all_skills)))}
 
-Beceriler: Product Strategy, CRM (Salesforce), Digital Transformation,
-OKR Management, Data-driven Decision-making, Cross-functional Leadership,
-Customer Experience, Agile/Scrum, PRINCE2, Business Analysis
+─── SERTIFIKALAR ───
+{', '.join(cv['certifications'])}
+
+─── DILLER ───
+{', '.join(f"{l['language']} ({l['level']})" for l in cv['languages'])}
+
+─── SEKTÖRLÜ DENEYİM ───
+Finans & Ödeme (Turkish Airlines, Edenred)
+Lojistik & Tedarik (CEVA Logistics)
+SaaS & E-Ticaret (Akinon)
+Seyahat & Teknik (Amadeus)
 """
 
     def score_jobs(self, jobs: list[Job], batch_size: int = 10) -> list[Job]:
@@ -113,8 +147,22 @@ Her ilan için JSON formatında uygunluk değerlendirmesi yap.
                 if job.job_id in score_map:
                     ev = score_map[job.job_id]
                     job.ai_score = float(ev.get("score", 0))
-                    job.ai_score_reason = ev.get("reason", "")
-                    job.ai_keywords = ev.get("missing_keywords", [])
+
+                    # Detaylı reason oluştur
+                    matched = ev.get("matched_skills", [])
+                    relevant = ev.get("relevant_experience", "")
+                    gaps = ev.get("gaps", [])
+
+                    reason_parts = [ev.get("reason", "")]
+                    if matched:
+                        reason_parts.append(f"✓ Uygun beceriler: {', '.join(matched[:3])}")
+                    if relevant:
+                        reason_parts.append(f"✓ Deneyim: {relevant}")
+                    if gaps:
+                        reason_parts.append(f"⚠ Eklenecekler: {', '.join(gaps[:2])}")
+
+                    job.ai_score_reason = " | ".join(reason_parts)
+                    job.ai_keywords = ev.get("keywords_to_add", [])
 
         except Exception as e:
             from rich.console import Console
