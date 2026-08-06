@@ -1,0 +1,71 @@
+user:
+  name: "Serkan Şentürk"
+  email: "serkancansenturk@gmail.com"
+  phone: "+90 532 012 26 01"
+  location: "İstanbul, Turkey"
+  linkedin_url: ""  # Ekle
+
+search:
+  # Hedef pozisyon başlıkları (AND değil OR mantığıyla aranır)
+  job_titles:
+    - "Head of Product"
+    - "VP of Product"
+    - "Chief Product Officer"
+    - "Director of Product"
+    - "Director of Digital Transformation"
+    - "VP Digital Transformation"
+    - "Director CRM"
+    - "Product Director"
+    - "CX Director"
+
+  # Lokasyon öncelik sırası
+  locations:
+    - "Istanbul, Turkey"
+    - "Remote"
+    - "London, UK"
+    - "Amsterdam, Netherlands"
+    - "Dubai, UAE"
+    - "Germany"
+    - "Switzerland"
+
+  # Filtreler
+  filters:
+    remote_only: false
+    full_time_only: true
+    min_score: 6          # 1-10 AI uygunluk skoru eşiği
+    exclude_keywords:
+      - "junior"
+      - "intern"
+      - "entry level"
+      - "graduate"
+
+  # Platform konfigürasyonu
+  platforms:
+    linkedin:
+      enabled: true
+      results_wanted: 50
+    indeed:
+      enabled: true
+      results_wanted: 30
+    glassdoor:
+      enabled: true
+      results_wanted: 20
+    remote_ok:
+      enabled: true
+      results_wanted: 20
+    kariyer_net:
+      enabled: true
+      results_wanted: 30
+    bayt:
+      enabled: true
+      results_wanted: 20
+    stepstone:
+      enabled: false   # Ekleme sürüyor
+      results_wanted: 20
+
+ai:
+  model: "claude-opus-4-5"
+  match_threshold: 6      # Bu skorun altındaki işler filtrelenir
+  cv_languages:
+    - "English"           # CV dili, gerekirse Türkçe de eklenebilir
+  cover_letter_tone: "professional"  # professional / warm / direct

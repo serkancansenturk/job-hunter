@@ -1,0 +1,16 @@
+.env
+.env.local
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.streamlit/secrets.toml
+job_hunter.db
+output/*.docx
+output/*.pdf
+venv/
+.venv/
+*.log
+.DS_Store
