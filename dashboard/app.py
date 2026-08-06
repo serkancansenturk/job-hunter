@@ -24,26 +24,89 @@ st.set_page_config(
 
 init_db()
 
-# ── Stil ──────────────────────────────────────────────────────────────────────
+# ── Modern Stil ──────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-.metric-card {
-    background: #1e293b;
+/* Ana layout */
+.main { background: linear-gradient(135deg, #0f172a 0%, #1a1f3a 100%); }
+
+/* İlan Card */
+.job-card {
+    background: linear-gradient(135deg, #1e293b 0%, #162035 100%);
     border: 1px solid #334155;
-    border-radius: 10px;
-    padding: 16px 20px;
-    text-align: center;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 12px 0;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: all 0.3s ease;
 }
-.score-high { color: #10b981; font-weight: 700; }
-.score-mid  { color: #f59e0b; font-weight: 700; }
-.score-low  { color: #ef4444; font-weight: 700; }
-.badge {
+.job-card:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 8px 20px rgba(59,130,246,0.15);
+    transform: translateY(-2px);
+}
+
+/* Score Badge */
+.score-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    font-size: 24px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+.score-badge.high { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+.score-badge.mid { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+.score-badge.low { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+
+/* Başlık & Metin */
+.job-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin-bottom: 4px;
+}
+.company-name {
+    font-size: 14px;
+    color: #cbd5e1;
+    font-weight: 500;
+}
+.match-reason {
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 3px solid #10b981;
+    padding: 12px;
+    border-radius: 6px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: #d1fae5;
+}
+
+/* Info badges */
+.info-badge {
     display: inline-block;
-    padding: 2px 10px;
+    padding: 4px 12px;
     border-radius: 20px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
+    margin: 2px 4px;
 }
+.badge-platform { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+.badge-remote { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+.badge-location { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+
+/* Buttons */
+.stButton > button {
+    border-radius: 8px;
+    font-weight: 600;
+    padding: 10px 20px;
+    transition: all 0.2s;
+}
+
+/* Metrics */
+.metric-container { background: #1e293b; border-radius: 10px; padding: 16px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -157,60 +220,77 @@ elif page == "🔍 İlanlar":
 
     for job in all_jobs:
         score = job.ai_score or 0
-        score_class = "score-high" if score >= 7 else "score-mid" if score >= 5 else "score-low"
+        score_level = "high" if score >= 7 else "mid" if score >= 5 else "low"
 
-        with st.expander(f"{'⭐' if score >= 7 else '·'} {job.title} — {job.company} ({job.location})", expanded=False):
-            col_a, col_b = st.columns([3, 1])
+        st.markdown(f"""
+        <div class="job-card">
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 16px;">
+                <div style="flex: 1;">
+                    <div class="job-title">{job.title}</div>
+                    <div class="company-name">{job.company}</div>
+                </div>
+                <div style="text-align: center;">
+                    <div class="score-badge {score_level}">{score:.1f}</div>
+                    <div style="font-size: 11px; color: #94a3b8; margin-top: 4px;">Uygunluk</div>
+                </div>
+            </div>
 
-            with col_a:
-                st.write(f"**Platform:** {job.platform} &nbsp;·&nbsp; **Tarih:** {job.scraped_at.strftime('%d.%m.%Y') if job.scraped_at else '—'}")
-                if job.url:
-                    st.write(f"🔗 [İlana Git]({job.url})")
+            <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
+                <span class="info-badge badge-location">📍 {job.location}</span>
+                <span class="info-badge badge-platform">{job.platform}</span>
+                {'<span class="info-badge badge-remote">🌐 Remote</span>' if job.is_remote else ''}
+                <span class="info-badge" style="background: rgba(100, 116, 139, 0.2); color: #cbd5e1;">
+                    📅 {job.scraped_at.strftime('%d.%m.%Y') if job.scraped_at else '—'}
+                </span>
+            </div>
 
+            {'<div class="match-reason">' + (job.ai_score_reason.split(' | ')[0] if job.ai_score_reason else '') + '</div>' if job.ai_score_reason else ''}
+        </div>
+        """, unsafe_allow_html=True)
+
+        # Detayları accordion'da göster
+        with st.expander("📋 Detaylar & Başvuru"):
+            col1, col2 = st.columns([2, 1])
+
+            with col1:
                 if job.ai_score_reason:
-                    # Reason'ı parse et ve güzel göster
                     parts = job.ai_score_reason.split(" | ")
-                    st.success(parts[0]) if job.ai_score >= 7 else st.info(parts[0])
-
-                    # Ek detayları tabs'de göster
                     if len(parts) > 1:
-                        col_detail = st.columns(len(parts) - 1)
-                        for idx, detail in enumerate(parts[1:]):
-                            with col_detail[idx]:
-                                st.caption(detail)
+                        st.markdown("**🎯 Eşleşme Detayları:**")
+                        for detail in parts[1:]:
+                            st.caption(detail)
 
                 if job.ai_keywords:
-                    st.warning(f"📌 ATS için eklenecekler: {', '.join(job.ai_keywords[:4])}")
+                    st.markdown("**📌 ATS İçin Eklenecekler:**")
+                    st.caption(", ".join(job.ai_keywords[:4]))
 
                 if job.description:
-                    with st.popover("📄 İlan Açıklaması"):
-                        st.write(job.description[:2000])
+                    st.markdown("**📄 İlan Açıklaması:**")
+                    st.caption(job.description[:500] + "..." if len(job.description) > 500 else job.description)
 
-            with col_b:
-                st.markdown(f"<p style='font-size:32px; text-align:center' class='{score_class}'>{score:.1f}</p>", unsafe_allow_html=True)
-                st.caption("AI Puanı")
+            with col1:
+                if job.url:
+                    st.markdown(f"[🔗 İlana Git]({job.url})")
 
-                if st.button("✅ Onayla & CV Hazırla", key=f"approve_{job.job_id}", use_container_width=True):
-                    with st.spinner(f"'{job.title}' için CV ve cover letter hazırlanıyor..."):
+            with col2:
+                st.markdown("**Aksiyon:**")
+                if st.button("✅ Hazırla", key=f"approve_{job.job_id}", use_container_width=True):
+                    with st.spinner(f"Hazırlanıyor..."):
                         try:
                             from ai.cv_tailor import CVTailor
                             from ai.cover_letter import CoverLetterGenerator
                             from ai.exporter import CVExporter
 
-                            # CV tailor et
                             tailor = CVTailor()
                             tailored_cv = tailor.tailor(job)
 
-                            # Cover letter üret
                             gen = CoverLetterGenerator()
                             cover_letter_text = gen.generate(job, tailored_cv)
                             tailored_cv.cover_letter = cover_letter_text
 
-                            # DOCX dışa aktar
                             exporter = CVExporter()
                             docx_path = exporter.export_docx(tailored_cv)
 
-                            # Database'e kaydet
                             app = Application(
                                 job_id=job.job_id,
                                 status=ApplicationStatus.APPROVED,
@@ -220,11 +300,12 @@ elif page == "🔍 İlanlar":
                             Database.save_application(app)
                             Database.update_job_status(job.job_id, JobStatus.APPROVED)
 
-                            st.success(f"✅ Tamamlandı!\n\nCV: {Path(docx_path).name}\n\nCover Letter hazırlandı.")
-                            st.info(f"📂 Dosya: output/ klasöründe")
+                            st.success("✅ CV + Cover Letter hazırlandı!")
+                            st.info(f"📂 Dosya kaydedildi")
+                            st.rerun()
 
                         except Exception as e:
-                            st.error(f"Hata: {str(e)[:200]}")
+                            st.error(f"❌ {str(e)[:100]}")
 
                 if st.button("❌ Reddet", key=f"reject_{job.job_id}", use_container_width=True):
                     Database.update_job_status(job.job_id, JobStatus.REJECTED)
