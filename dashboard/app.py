@@ -63,23 +63,8 @@ with st.sidebar:
 
     st.divider()
 
-    if st.button("🔄 Yeni Tarama Başlat", use_container_width=True, type="primary"):
-        with st.spinner("İlanlar taranıyor..."):
-            try:
-                from scripts.run_scrape import run_full_scrape
-                run_full_scrape()
-                st.success("Tarama tamamlandı!")
-            except Exception as e:
-                st.error(f"Tarama hatası: {e}")
-
-    if st.button("🤖 Seçili İlanları Puanla", use_container_width=True):
-        with st.spinner("AI değerlendiriyor..."):
-            try:
-                from scripts.run_score import run_scoring
-                run_scoring()
-                st.success("Puanlama tamamlandı!")
-            except Exception as e:
-                st.error(f"Puanlama hatası: {e}")
+    st.info("💡 **Tarama & Puanlama:** Local PC'de her gün 08:00'de otomatik çalışıyor.")
+    st.info("📊 Sonuçlar buradan görülüyor. Manuel tarama için local terminal'de çalıştır.")
 
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
