@@ -127,6 +127,37 @@ if page == "📊 Dashboard":
         st.info("Henüz yüksek eşleşme bulunamadı. Tarama başlatın.")
 
 
+# ── Helper Functions ──────────────────────────────────────────────────────────
+def _prepare_and_approve(job: Job) -> None:
+    """CV'yi özelleştir, kapak mektubu oluştur, DOCX dışa aktar, başvuruya ekle."""
+    with st.spinner(f"'{job.title}' için CV hazırlanıyor..."):
+        try:
+            from ai.cv_tailor import CVTailor
+            from ai.cover_letter import CoverLetterGenerator
+            from ai.exporter import CVExporter
+
+            tailor = CVTailor()
+            gen = CoverLetterGenerator()
+            exporter = CVExporter()
+
+            tailored = tailor.tailor(job)
+            tailored.cover_letter = gen.generate(job, tailored)
+            docx_path = exporter.export_docx(tailored)
+
+            app = Application(
+                job_id=job.job_id,
+                status=ApplicationStatus.APPROVED,
+                cv_version_path=docx_path,
+                cover_letter=tailored.cover_letter,
+            )
+            Database.save_application(app)
+            Database.update_job_status(job.job_id, JobStatus.APPROVED)
+
+            st.success(f"CV hazırlandı: {docx_path}")
+        except Exception as e:
+            st.error(f"Hata: {e}")
+
+
 # ── İlanlar ───────────────────────────────────────────────────────────────────
 elif page == "🔍 İlanlar":
     st.header("🔍 İş İlanları")
@@ -184,36 +215,6 @@ elif page == "🔍 İlanlar":
                 if st.button("❌ Reddet", key=f"reject_{job.job_id}", use_container_width=True):
                     Database.update_job_status(job.job_id, JobStatus.REJECTED)
                     st.rerun()
-
-
-def _prepare_and_approve(job: Job) -> None:
-    """CV'yi özelleştir, kapak mektubu oluştur, DOCX dışa aktar, başvuruya ekle."""
-    with st.spinner(f"'{job.title}' için CV hazırlanıyor..."):
-        try:
-            from ai.cv_tailor import CVTailor
-            from ai.cover_letter import CoverLetterGenerator
-            from ai.exporter import CVExporter
-
-            tailor = CVTailor()
-            gen = CoverLetterGenerator()
-            exporter = CVExporter()
-
-            tailored = tailor.tailor(job)
-            tailored.cover_letter = gen.generate(job, tailored)
-            docx_path = exporter.export_docx(tailored)
-
-            app = Application(
-                job_id=job.job_id,
-                status=ApplicationStatus.APPROVED,
-                cv_version_path=docx_path,
-                cover_letter=tailored.cover_letter,
-            )
-            Database.save_application(app)
-            Database.update_job_status(job.job_id, JobStatus.APPROVED)
-
-            st.success(f"CV hazırlandı: {docx_path}")
-        except Exception as e:
-            st.error(f"Hata: {e}")
 
 
 # ── Başvurular ────────────────────────────────────────────────────────────────
