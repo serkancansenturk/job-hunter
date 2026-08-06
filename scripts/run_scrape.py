@@ -9,7 +9,17 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from rich.console import Console
 from rich.progress import track
 from storage.database import Database, init_db
-from scrapers import JobSpyScraper, RemoteOKScraper, KariyerScraper, BaytScraper
+from scrapers import (
+    RemoteOKScraper,
+    KariyerScraper,
+    BaytScraper,
+    RemoteCoScraper,
+    WeWorkRemoteScraper,
+    LinkedInRSSScraper,
+    StepStoneScraper,
+    ReedScraper,
+    EURESScraper,
+)
 from config.settings import load_config
 
 console = Console()
@@ -25,38 +35,38 @@ def run_full_scrape() -> int:
 
     all_jobs = []
 
-    # Remote OK
-    if platforms_cfg.get("remote_ok", {}).get("enabled"):
-        console.rule("[cyan]Remote OK")
-        scraper = RemoteOKScraper()
-        jobs = scraper.scrape(
-            search_terms=search_terms,
-            locations=[],
-            results_wanted=platforms_cfg["remote_ok"].get("results_wanted", 20),
-        )
-        all_jobs.extend(jobs)
+    # MVP Platforms
+    scrapers = [
+        ("remote_ok", RemoteOKScraper()),
+        ("kariyer_net", KariyerScraper()),
+        ("bayt", BaytScraper()),
+        ("remote.co", RemoteCoScraper()),
+        ("weworkremotely", WeWorkRemoteScraper()),
+        ("linkedin_rss", LinkedInRSSScraper()),
+    ]
 
-    # Kariyer.net
-    if platforms_cfg.get("kariyer_net", {}).get("enabled"):
-        console.rule("[cyan]Kariyer.net")
-        scraper = KariyerScraper()
-        jobs = scraper.scrape(
-            search_terms=search_terms[:3],
-            locations=["İstanbul"],
-            results_wanted=platforms_cfg["kariyer_net"].get("results_wanted", 20),
-        )
-        all_jobs.extend(jobs)
+    # Tier 2 Platforms
+    scrapers.extend([
+        ("stepstone", StepStoneScraper()),
+        ("reed", ReedScraper()),
+        ("eures", EURESScraper()),
+    ])
 
-    # Bayt.com
-    if platforms_cfg.get("bayt", {}).get("enabled"):
-        console.rule("[cyan]Bayt.com")
-        scraper = BaytScraper()
-        jobs = scraper.scrape(
-            search_terms=search_terms[:3],
-            locations=["UAE", "Saudi Arabia", "Qatar"],
-            results_wanted=platforms_cfg["bayt"].get("results_wanted", 20),
-        )
-        all_jobs.extend(jobs)
+    for platform_name, scraper in scrapers:
+        if not platforms_cfg.get(platform_name, {}).get("enabled", True):
+            continue
+
+        console.rule(f"[cyan]{scraper.name.upper()}")
+
+        try:
+            jobs = scraper.scrape(
+                search_terms=search_terms[:2],
+                locations=locations[:2],
+                results_wanted=platforms_cfg.get(platform_name, {}).get("results_wanted", 20),
+            )
+            all_jobs.extend(jobs)
+        except Exception as e:
+            console.print(f"[red]{scraper.name} hatası: {e}[/red]")
 
     # Kaydet
     console.rule("[green]Veritabanına kaydediliyor")

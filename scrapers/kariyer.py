@@ -34,7 +34,7 @@ class KariyerScraper(BaseScraper):
         for term in search_terms:
             self._log(f"Kariyer.net tarıyor: '{term}'")
             try:
-                params = {"q": term, "wt": "1"}  # wt=1 -> tam zamanlı
+                params = {"q": term}
                 resp = httpx.get(
                     self.SEARCH_URL,
                     params=params,
@@ -43,32 +43,41 @@ class KariyerScraper(BaseScraper):
                     follow_redirects=True,
                 )
                 resp.raise_for_status()
-                soup = BeautifulSoup(resp.text, "lxml")
+                soup = BeautifulSoup(resp.text, "html.parser")
 
-                cards = soup.select("div.list-items-wrapper article.list-item")
+                # CSS selector'lar güncellendi
+                cards = soup.select("div[data-test-id='jobCard']") or soup.select("article.job-card") or soup.select("a.job-item")
+
                 for card in cards[:results_wanted]:
-                    title_el = card.select_one("h2.list-item-title a")
-                    company_el = card.select_one("span.list-item-info-label")
-                    location_el = card.select_one("span.list-item-info-cities")
-                    url_el = card.select_one("h2.list-item-title a")
+                    if isinstance(card, str):
+                        continue
 
-                    if not title_el:
+                    title_el = card.select_one("h2") or card.select_one("a[title]")
+                    company_el = card.select_one("[data-test-id='company']") or card.select_one(".company-name")
+                    location_el = card.select_one("[data-test-id='location']") or card.select_one(".location")
+                    url_el = card.select_one("a[href*='is-ilani']") or card.select_one("a[href]")
+
+                    if not (title_el and url_el):
+                        continue
+
+                    title = title_el.get_text(strip=True)
+                    if len(title) < 3:
                         continue
 
                     job = Job(
-                        title=title_el.get_text(strip=True),
-                        company=company_el.get_text(strip=True) if company_el else "",
+                        title=title,
+                        company=company_el.get_text(strip=True) if company_el else "Bilinmiyor",
                         location=location_el.get_text(strip=True) if location_el else "Türkiye",
-                        url=self.BASE_URL + url_el["href"] if url_el and url_el.get("href") else "",
+                        url=url_el.get("href", "") if url_el.get("href", "").startswith("http") else self.BASE_URL + (url_el.get("href", "") or ""),
                         platform="kariyer",
-                        is_remote=False,
+                        is_remote="remote" in title.lower() or "uzaktan" in title.lower(),
                     )
                     jobs.append(job)
 
-                time.sleep(2)  #礼貌等待
+                time.sleep(1)
 
             except Exception as e:
-                self._log(f"[red]Kariyer.net hatası ({term}): {e}[/red]")
+                self._log(f"Kariyer.net hatası ({term}): {str(e)[:50]}")
 
         self._log(f"{len(jobs)} ilan bulundu")
         return jobs

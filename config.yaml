@@ -39,28 +39,36 @@ search:
       - "entry level"
       - "graduate"
 
-  # Platform konfigürasyonu
+  # Platform konfigürasyonu (MVP + Tier 2)
   platforms:
-    linkedin:
-      enabled: true
-      results_wanted: 50
-    indeed:
-      enabled: true
-      results_wanted: 30
-    glassdoor:
-      enabled: true
-      results_wanted: 20
+    # MVP Platforms
     remote_ok:
       enabled: true
       results_wanted: 20
     kariyer_net:
       enabled: true
-      results_wanted: 30
+      results_wanted: 25
     bayt:
       enabled: true
       results_wanted: 20
+    remote.co:
+      enabled: true
+      results_wanted: 30
+    weworkremotely:
+      enabled: true
+      results_wanted: 30
+    linkedin_rss:
+      enabled: true
+      results_wanted: 25
+    # Tier 2 Platforms
     stepstone:
-      enabled: false   # Ekleme sürüyor
+      enabled: true
+      results_wanted: 25
+    reed:
+      enabled: true
+      results_wanted: 25
+    eures:
+      enabled: true
       results_wanted: 20
 
 ai:
