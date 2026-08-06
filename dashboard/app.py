@@ -190,8 +190,41 @@ elif page == "🔍 İlanlar":
                 st.markdown(f"<p style='font-size:32px; text-align:center' class='{score_class}'>{score:.1f}</p>", unsafe_allow_html=True)
                 st.caption("AI Puanı")
 
-                if st.button("✅ Onayla", key=f"approve_{job.job_id}", use_container_width=True):
-                    st.info("⏳ CV hazırlama özelliği yakında gelecek")
+                if st.button("✅ Onayla & CV Hazırla", key=f"approve_{job.job_id}", use_container_width=True):
+                    with st.spinner(f"'{job.title}' için CV ve cover letter hazırlanıyor..."):
+                        try:
+                            from ai.cv_tailor import CVTailor
+                            from ai.cover_letter import CoverLetterGenerator
+                            from ai.exporter import CVExporter
+
+                            # CV tailor et
+                            tailor = CVTailor()
+                            tailored_cv = tailor.tailor(job)
+
+                            # Cover letter üret
+                            gen = CoverLetterGenerator()
+                            cover_letter_text = gen.generate(job, tailored_cv)
+                            tailored_cv.cover_letter = cover_letter_text
+
+                            # DOCX dışa aktar
+                            exporter = CVExporter()
+                            docx_path = exporter.export_docx(tailored_cv)
+
+                            # Database'e kaydet
+                            app = Application(
+                                job_id=job.job_id,
+                                status=ApplicationStatus.APPROVED,
+                                cv_version_path=docx_path,
+                                cover_letter=cover_letter_text,
+                            )
+                            Database.save_application(app)
+                            Database.update_job_status(job.job_id, JobStatus.APPROVED)
+
+                            st.success(f"✅ Tamamlandı!\n\nCV: {Path(docx_path).name}\n\nCover Letter hazırlandı.")
+                            st.info(f"📂 Dosya: output/ klasöründe")
+
+                        except Exception as e:
+                            st.error(f"Hata: {str(e)[:200]}")
 
                 if st.button("❌ Reddet", key=f"reject_{job.job_id}", use_container_width=True):
                     Database.update_job_status(job.job_id, JobStatus.REJECTED)
